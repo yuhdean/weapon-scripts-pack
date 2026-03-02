@@ -1,4 +1,4 @@
-# weapon-scripts-pack
+# Weapon Scripts Pack
 A variety pack of multiple functions revolving around weapons.
 
 ## Functionality
@@ -7,6 +7,9 @@ A variety pack of multiple functions revolving around weapons.
 - When the player goes into a ragdoll state (falling, tripped, etc.), they will drop their weapon.
 - Any weapon dropped or placed is able to be picked up by any players.
 - Any dropped weapons will despawn if all players leave the area.
+
+## Animations
+- By default, the script will do `/e pickup` upon picking up a weapon, but you can toggle this at the top of the `client.lua`.
 
 ## Dependencies
 - [ox_lib](https://github.com/overextended/ox_lib)
