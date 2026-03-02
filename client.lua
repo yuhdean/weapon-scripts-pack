@@ -3,6 +3,8 @@ local wasPlayerFalling = false
 local droppedWeapons = {}
 local droppedWeaponTargetDistance = 1.5
 local droppedWeaponTargetZoneRadius = 1.0
+local pickupAnim = true
+local pickupAnimName = 'e pickup'
 local placementMaxDistance = 12.0
 local placementMinDistance = 1.0
 local placementStep = 0.1
@@ -545,7 +547,9 @@ end)
 
 RegisterNetEvent('wsp:giveDroppedWeapon')
 AddEventHandler('wsp:giveDroppedWeapon', function(weaponHash, ammo, clipAmmo)
-  ExecuteCommand('e pickup')
+  if pickupAnim and pickupAnimName and pickupAnimName ~= '' then
+    ExecuteCommand(pickupAnimName)
+  end
 
   CreateThread(function()
     Wait(1000)
