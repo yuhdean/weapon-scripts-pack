@@ -4,9 +4,10 @@ A variety pack of multiple functions revolving around weapons.
 ## Functionality
 - `/dropweapon` will drop the currently held weapon onto the floor
 - `/placeweapon` will allow the user to manually place the dropped weapon
+- `/throwweapon` will throw the currently held weapon where the player is looking. *(Throw strength will change based on weapon type)*
 - When the player goes into a ragdoll state (falling, tripped, etc.), they will drop their weapon.
 - Any weapon dropped or placed is able to be picked up by any players.
-- Any dropped weapons will despawn if all players leave the area.
+- Any dropped weapons will despawn every 30 minutes, or if an admin runs `/cleargundrops`.
 
 ## Animations
 - By default, the script will do `/e pickup` upon picking up a weapon, but you can toggle this at the top of the `client.lua`.
