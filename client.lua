@@ -5,6 +5,9 @@ local droppedWeaponTargetDistance = 1.5
 local droppedWeaponTargetZoneRadius = 1.0
 local pickupAnim = true
 local pickupAnimName = 'e pickup'
+local throwAnimDict = 'weapons@projectile@'
+local throwAnimName = 'throw_m_fb_stand'
+local throwAnimDurationMs = 330
 local placementMaxDistance = 12.0
 local placementMinDistance = 1.0
 local placementStep = 0.1
@@ -19,10 +22,26 @@ local longarmGroups = {
   [GetHashKey('GROUP_HEAVY')] = true,
 }
 
+local pistolGroups = {
+  [GetHashKey('GROUP_PISTOL')] = true,
+}
+
+local meleeGroups = {
+  [GetHashKey('GROUP_MELEE')] = true,
+}
+
 local function loadModelHash(modelHash)
   RequestModel(modelHash)
 
   while not HasModelLoaded(modelHash) do
+    Wait(10)
+  end
+end
+
+local function loadAnimDict(dict)
+  RequestAnimDict(dict)
+
+  while not HasAnimDictLoaded(dict) do
     Wait(10)
   end
 end
@@ -120,6 +139,28 @@ local function isLongarmWeapon(weaponHash)
   end
 
   return longarmGroups[GetWeapontypeGroup(weaponHash)] == true
+end
+
+local function getThrowStrengthMultiplier(weaponHash)
+  if not weaponHash then
+    return 1.0
+  end
+
+  local weaponGroup = GetWeapontypeGroup(weaponHash)
+
+  if longarmGroups[weaponGroup] then
+    return 1.0
+  end
+
+  if pistolGroups[weaponGroup] then
+    return 1.75
+  end
+
+  if meleeGroups[weaponGroup] then
+    return 1.9
+  end
+
+  return 1.35
 end
 
 local function getDroppedWeaponClipAmmo(playerPed, weaponHash, ammoCount)
@@ -297,6 +338,22 @@ local function spawnDroppedWeaponObject(dropId, dropData)
         false,
         true
       )
+      ApplyForceToEntity(
+        weaponObject,
+        3,
+        0.0,
+        0.0,
+        0.0,
+        4.0,
+        2.5,
+        1.75,
+        0,
+        false,
+        true,
+        true,
+        false,
+        true
+      )
     end
     SetModelAsNoLongerNeeded(dropData.weaponModel)
     registerDroppedWeaponPickup(dropId, dropData)
@@ -339,10 +396,18 @@ local function dropWeaponWithOptions(options)
   local clipAmmo = getDroppedWeaponClipAmmo(playerPed, weaponHash, ammoCount)
   local weaponModel = GetWeapontypeModel(weaponHash)
   local placeMode = options and options.placeMode
+  local throwMode = options and options.throwMode
   local spawnCoords
 
   if placeMode then
     spawnCoords = options.coords
+  elseif throwMode then
+    local handCoords = GetPedBoneCoords(playerPed, 57005, 0.18, 0.02, -0.02)
+    spawnCoords = {
+      x = handCoords.x,
+      y = handCoords.y,
+      z = handCoords.z
+    }
   else
     local handCoords = GetPedBoneCoords(playerPed, 57005, 0.16, 0.03, 0.02)
     spawnCoords = {
@@ -359,7 +424,15 @@ local function dropWeaponWithOptions(options)
   }
   local force = { x = 0.0, y = 0.0, z = 0.0 }
 
-  if not placeMode then
+  if throwMode then
+    local throwStrength = getThrowStrengthMultiplier(weaponHash)
+    local cameraDirection = rotationToDirection(GetGameplayCamRot(2))
+    force = {
+      x = cameraDirection.x * (24.0 * throwStrength),
+      y = cameraDirection.y * (24.0 * throwStrength),
+      z = math.max(8.5 * throwStrength, (cameraDirection.z * (20.0 * throwStrength)) + (8.5 * throwStrength))
+    }
+  elseif not placeMode then
     local forwardVector = GetEntityForwardVector(playerPed)
     force = {
       x = forwardVector.x * 0.55,
@@ -389,6 +462,26 @@ local function dropWeaponWithOptions(options)
     type = 'inform',
     position = 'center-right'
   })
+
+  return true
+end
+
+local function throwHeldWeapon()
+  local playerPed = PlayerPedId()
+  local weaponHash = getSelectedWeapon()
+
+  if not weaponHash then
+    notifyNoWeapon()
+    return false
+  end
+
+  loadAnimDict(throwAnimDict)
+  TaskPlayAnim(playerPed, throwAnimDict, throwAnimName, 8.0, 2.0, throwAnimDurationMs, 48, 0.0, false, false, false)
+
+  CreateThread(function()
+    Wait(throwAnimDurationMs)
+    dropWeaponWithOptions({ throwMode = true })
+  end)
 
   return true
 end
@@ -517,6 +610,10 @@ end)
 
 RegisterCommand('dropweapon', function()
   TriggerEvent('wsp:dropHeldGunToGround')
+end, false)
+
+RegisterCommand('throwweapon', function()
+  throwHeldWeapon()
 end, false)
 
 RegisterCommand('placeweapon', function()

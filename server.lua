@@ -1,7 +1,6 @@
 local droppedWeapons = {}
 local nextDroppedWeaponId = 0
-local droppedWeaponLifetimeMs = 120000
-local droppedWeaponDespawnRadius = 75.0
+local droppedWeaponLifetimeMs = 1800000
 
 local function removeDroppedWeapon(dropId)
   if not droppedWeapons[dropId] then
@@ -12,24 +11,10 @@ local function removeDroppedWeapon(dropId)
   TriggerClientEvent('wsp:removeDroppedWeapon', -1, dropId)
 end
 
-local function isAnyPlayerNearDrop(dropData)
-  for _, playerId in ipairs(GetPlayers()) do
-    local ped = GetPlayerPed(playerId)
-
-    if ped and ped ~= 0 then
-      local coords = GetEntityCoords(ped)
-      local dx = coords.x - dropData.coords.x
-      local dy = coords.y - dropData.coords.y
-      local dz = coords.z - dropData.coords.z
-      local distance = math.sqrt((dx * dx) + (dy * dy) + (dz * dz))
-
-      if distance <= droppedWeaponDespawnRadius then
-        return true
-      end
-    end
+local function clearAllDroppedWeapons()
+  for dropId in pairs(droppedWeapons) do
+    removeDroppedWeapon(dropId)
   end
-
-  return false
 end
 
 RegisterNetEvent('wsp:createDroppedWeapon')
@@ -87,14 +72,17 @@ AddEventHandler('wsp:requestDroppedWeapons', function()
   end
 end)
 
-CreateThread(function()
-  while true do
-    Wait(10000)
+RegisterCommand('cleargundrops', function(source)
+  clearAllDroppedWeapons()
 
-    for dropId, dropData in pairs(droppedWeapons) do
-      if not isAnyPlayerNearDrop(dropData) then
-        removeDroppedWeapon(dropId)
-      end
-    end
+  if source == 0 then
+    print('[weapon-script-pack] Cleared all dropped guns.')
+  else
+    TriggerClientEvent('ox_lib:notify', source, {
+      title = 'Gun Drops Cleared',
+      description = 'All dropped guns have been removed.',
+      type = 'success',
+      position = 'center-right'
+    })
   end
-end)
+end, true)
